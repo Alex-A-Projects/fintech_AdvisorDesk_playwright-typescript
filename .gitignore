@@ -1,0 +1,15 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+playwright/.cache/
+.env
+*.log
+coverage/
+.nyc_output/
+utils/db/*.db
+utils/db/*.db-journal
+utils/db/backups/
+.idea/
+.DS_Store
+*.tsbuildinfo

@@ -1,0 +1,31 @@
+{
+  // Playwright Test for VSCode extension auto-discovers `playwright.config.ts`
+  // via the workspaceContains activation event, so we don't need to point
+  // it at the config file.
+
+  // Use the project's own Playwright version.
+  "playwright.env": {},
+
+  // Reuse browsers across runs (faster iteration).
+  "playwright.reuseBrowser": false,
+
+  // Don't auto-open trace viewer unless the user asks.
+  "playwright.showTrace": false,
+
+  // Built-in Test Explorer is rarely useful for Playwright; keep it hidden.
+  "testing.openTesting": "never",
+  "testing.automaticallyOpenTestResults": "never",
+
+  // TypeScript — use the workspace's TS, not VS Code's bundled one.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/playwright-report": true,
+    "**/test-results": true
+  },
+
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true
+}

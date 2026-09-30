@@ -1,0 +1,60 @@
+# Real databases for integration testing.
+#
+# Usage:
+#   docker compose up -d postgres    # start Postgres on :5432
+#   npm run test:db                  # tests auto-detect & use it
+#
+# The DB tests default to SQLite for offline use (./utils/db/advisordesk.db).
+# Set DB_TYPE=postgres + POSTGRES_* env vars in .env to switch.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: advisordesk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-advisordesk_test}
+      POSTGRES_USER: ${POSTGRES_USER:-advisordesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-advisordesk}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-advisordesk}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mysql:
+    image: mysql:8
+    container_name: advisordesk-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DB:-advisordesk_test}
+      MYSQL_USER: ${MYSQL_USER:-advisordesk}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-advisordesk}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-rootpw}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    container_name: advisordesk-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+volumes:
+  pgdata:
+  mysqldata:
+  mongodata:
