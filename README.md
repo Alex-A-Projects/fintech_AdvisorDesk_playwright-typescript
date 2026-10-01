@@ -16,6 +16,21 @@ public APIs, and database testing with SQLite (and optionally Postgres via Docke
 | `db-postgres` | 28 | Real Postgres via Docker (skips gracefully if down) |
 | **Total (runnable in Chromium)** | **462** | Plus DB+API suites run independently |
 
+## Stack
+
+| Layer | Technology |
+|---|---|
+| **Test runner** | [Playwright](https://playwright.dev/) 1.63 (7 projects: chromium, firefox, webkit, mobile, api, db, db-integration, db-postgres) |
+| **Language** | TypeScript 5.6 (strict mode + path aliases) |
+| **UI testing** | Playwright Test runner + Page Object Model + 12 page classes + 7 component classes |
+| **API testing** | [`axios`](https://github.com/axios/axios) with a custom `ApiClient` wrapper (per-host throttle + retry-on-429/5xx + `Retry-After` honoring) |
+| **DB (SQLite)** | [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3) — synchronous, file-based, no setup |
+| **DB (Postgres)** | [`pg`](https://github.com/brianc/node-postgres) — real RDBMS, runs in `docker-compose.yml` |
+| **Test data** | [`faker`](https://github.com/faker-js/faker) for seeded inputs, `uuid` for IDs |
+| **Web server** | `http-server` (dev only — serves `public/demo.html` so tests avoid the sandboxed Shopify CDN) |
+| **Containers** | Docker Compose (Postgres 16, MySQL 8, Mongo 7 — currently used: Postgres) |
+| **Reports** | Built-in Playwright HTML + List + JSON + JUnit reporters |
+
 ## Project structure
 
 ```
