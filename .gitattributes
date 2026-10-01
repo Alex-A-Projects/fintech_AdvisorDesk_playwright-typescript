@@ -1,0 +1,22 @@
+# Tell GitHub Linguist which languages to actually count for this repo.
+# Without this, the large vendored demo.html (public/demo.html, ~6k lines)
+# causes Linguist to label the project as "HTML" instead of "TypeScript/Playwright".
+#
+# Reference: https://docs.github.com/en/repositories/working-with-files/managing-files/customizing-how-changed-files-appear-on-github
+
+# Exclude vendored / generated content from language detection
+public/demo.html linguist-generated=true linguist-documentation=true
+
+# Detect TypeScript and JavaScript normally
+*.ts linguist-detectable=true
+*.tsx linguist-detectable=true
+*.js linguist-detectable=true
+*.mjs linguist-detectable=true
+
+# YAML and shell count too — these are part of the project
+*.yml linguist-detectable=true
+*.yaml linguist-detectable=true
+*.sh linguist-detectable=true
+
+# Don't count vendored HTML
+*.html linguist-detectable=false
