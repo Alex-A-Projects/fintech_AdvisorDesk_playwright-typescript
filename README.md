@@ -1,60 +1,15 @@
 # AdvisorDesk Test Framework
 
-A Playwright + TypeScript test framework for the
-[AdvisorDesk demo app](https://cdn.shopify.com/s/files/1/0604/1550/8613/t/1/assets/demo-financial-advisors.html)
-covering UI testing with Page Object Model, API testing against fintech-relevant
-public APIs, and database testing with SQLite (and optionally Postgres via Docker).
+Playwright + TypeScript automation for the
+[AdvisorDesk demo](https://cdn.shopify.com/s/files/1/0604/1550/8613/t/1/assets/demo-financial-advisors.html),
+using Page Object Models, reusable fixtures, and HTML reports.
 
-## Test counts
+- **UI:** website workflows across 11 pages, with desktop and mobile projects.
+- **Database:** SQLite and Postgres tests against repository-managed test databases.
+- **API:** 58 tests across nine feature files for a proposed AdvisorDesk backend.
 
-| Project | Count | Notes |
-|---|---:|---|
-| `chromium` UI | 165 | Smoke + regression for all 11 demo pages |
-| `api` | 150 | 9 fintech-relevant public APIs |
-| `db` (SQLite) | 103 | Schema, CRUD, transactions, perf |
-| `db-integration` | 16 | Browser ↔ SQLite mirror |
-| `db-postgres` | 28 | Real Postgres via Docker (skips gracefully if down) |
-| **Total (runnable in Chromium)** | **462** | Plus DB+API suites run independently |
-
-## Stack
-
-| Layer | Technology |
-|---|---|
-| **Test runner** | [Playwright](https://playwright.dev/) 1.63 (7 projects: chromium, firefox, webkit, mobile, api, db, db-integration, db-postgres) |
-| **Language** | TypeScript 5.6 (strict mode + path aliases) |
-| **UI testing** | Playwright Test runner + Page Object Model + 12 page classes + 7 component classes |
-| **API testing** | [`axios`](https://github.com/axios/axios) with a custom `ApiClient` wrapper (per-host throttle + retry-on-429/5xx + `Retry-After` honoring) |
-| **DB (SQLite)** | [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3) — synchronous, file-based, no setup |
-| **DB (Postgres)** | [`pg`](https://github.com/brianc/node-postgres) — real RDBMS, runs in `docker-compose.yml` |
-| **Test data** | [`faker`](https://github.com/faker-js/faker) for seeded inputs, `uuid` for IDs |
-| **Web server** | `http-server` (dev only — serves `public/demo.html` so tests avoid the sandboxed Shopify CDN) |
-| **Containers** | Docker Compose (Postgres 16, MySQL 8, Mongo 7 — currently used: Postgres) |
-| **Reports** | Built-in Playwright HTML + List + JSON + JUnit reporters |
-
-## Project structure
-
-```
-.
-├── pages/                   12 Page Object Models (one per demo page)
-├── components/              7 reusable UI widgets (Sidebar, Modal, Toast…)
-├── fixtures/                Playwright fixtures + 11 page instances
-├── config/                  Environment configuration
-├── types/                   Shared TypeScript types
-├── utils/
-│   ├── api/                 ApiClient + 7 pre-configured clients
-│   │                        (with throttling + retry-on-429 + Retry-After)
-│   ├── db/                  SQLite connection, schema, seed, repository,
-│   │                        + Postgres connection + repository
-│   └── helpers/             logger, faker, data-store, wait
-├── tests/                   UI tests for demo pages (12 files)
-├── tests-api/               API tests (9 files)
-├── tests-db/                DB tests (7 files)
-├── public/demo.html          Locally-served copy of the demo
-├── playwright.config.ts      7 projects
-├── docker-compose.yml       Postgres + MySQL + Mongo for integration tests
-├── tsconfig.json            Strict TS + path aliases
-└── package.json
-```
+The demo uses localStorage. The API endpoints are assumed contracts, not
+verified endpoints on the public demo; a compatible backend is required to run them.
 
 ## Setup
 
@@ -64,127 +19,67 @@ npx playwright install chromium
 cp .env.example .env
 ```
 
-The Playwright config boots `http-server ./public -p 8765` automatically
-when tests run, so the demo is served from the local `public/demo.html`
-(which sidesteps the Shopify CDN's sandboxed iframe).
+UI tests automatically start the local demo at `http://localhost:8765/demo.html`.
+For Firefox or WebKit, install them with `npx playwright install firefox webkit`.
 
-## Running tests
-
-```bash
-npm test                       # Chromium UI only (default)
-npm run test:api               # API suite
-npm run test:db                # SQLite DB suite
-npm run test:db:pg             # Postgres DB suite (needs Docker)
-npm run test:smoke             # @smoke tagged
-npm run test:headed            # visible browser
-npm run test:report            # open last HTML report
-
-# Optional: spin up Postgres for the real-RDBMS tests
-npm run db:up                  # docker compose up -d postgres
-npm run db:down                # docker compose down
-```
-
-## Page Object Model
-
-Each demo page has a POM in `pages/`. Common UI widgets live in
-`components/`. All tests get fixtures from `fixtures/` which auto-seed
-the demo with sample data and provide typed page instances:
-
-```ts
-import { test, expect } from '../fixtures';
-
-test('create client', async ({ clientsPage }) => {
-  await clientsPage.goto('clients');
-  await clientsPage.clickAdd();
-  await clientsPage.modal.fill('Name', 'Acme');
-  await clientsPage.modal.fill('Email', 'a@b.com');
-  await clientsPage.modal.submit();
-  await clientsPage.toast.expectVisible(/added/i);
-});
-```
-
-**11 demo pages covered**: Dashboard, Clients (+ detail), Projects
-(+ detail), Tasks, Invoices (+ detail), Quotes, Calendar, Notes
-(+ detail), Reports, Integrations, Settings.
-
-## API testing
-
-7 fintech-relevant public APIs in `utils/api/api-client-manager.ts`:
-
-| API | What it gives us |
-|---|---|
-| JSONPlaceholder | CRUD / auth / pagination |
-| HTTPBin | HTTP request/response sandbox |
-| Frankfurter | ECB currency rates |
-| ExchangeRate | FX rates |
-| CoinGecko | Crypto prices |
-| GitHub | REST + auth patterns |
-| ReqRes | Auth / CRUD / pagination |
-| Stripe + Square + PayPal + Notion | Negative-path auth checks |
-
-Each client supports `.get .post .put .patch .delete .head .options` and
-returns a normalized `ApiResponse<T>` with timing + headers.
-
-The `ApiClient` is **resilient to 429s**:
-
-- 400ms per-host throttle
-- Auto-retry on 429/5xx with exponential backoff
-- Honors `Retry-After` response header
-- Returns the last response (with status `0` on exhaustion) so tests can
-  assert on shape — most tests accept `[0, 200, 429]` and only check data
-  when status is 200
-
-## Database testing
-
-**SQLite** (default) via `better-sqlite3` — synchronous, file-based, no
-setup. Schema mirrors the AdvisorDesk data model: clients, projects,
-tasks, invoices, invoice_lines, quotes, events, notes, timelogs,
-activity, integrations, settings, audit_log.
-
-Bootstrapped with `npm run db:seed` — 15 clients, 30 projects, 60 tasks,
-20 invoices with line items, AUM, risk profiles, stage/status/timing
-distributions.
-
-Use `utils/db/repository.ts` for typed CRUD:
-
-```ts
-import { Clients } from '../../utils/db/repository';
-
-test('cascade delete removes child projects', () => {
-  const id = Clients.insert({ name: 'X', status: 'active' });
-  // ... insert project with client_id = id ...
-  Clients.remove(id);
-  // verify cascade...
-});
-```
-
-**Postgres** (optional) via `docker compose up -d postgres` —
-real RDBMS, real SQL dialect, tests skip gracefully if Docker isn't running:
+## Run tests
 
 ```bash
-npm run db:up        # docker compose up -d postgres
-npm run test:db:pg   # 28 tests against real Postgres
+npm run test:ui                         # Chromium
+npm run test:db                         # SQLite
+npm run test:api:website                # Proposed API suite
+npx playwright test --project=firefox
+npx playwright test --project=webkit
+npx playwright test --project=mobile
+npx playwright test --project=db-integration
+npm run test:report                     # Open the main HTML report
+```
+
+`npm test` runs all projects in the main configuration. The API suite uses its
+own configuration; run it with `test:api:website`.
+
+## API configuration
+
+Set these values in `.env` or your shell:
+
+```dotenv
+ADVISORDESK_API_BASE_URL=http://localhost:3000/api/v1/
+ADVISORDESK_API_TOKEN=your-test-user-token
+```
+
+The URL is an example, not a backend included in this repository. Tests skip
+when either value is missing. Use a test backend: scenarios create records and
+clean them up afterward.
+
+Tests cover health, authentication, clients, projects, tasks, invoices, quotes,
+calendar events, and notes. Run one feature or list all cases:
+
+```bash
+npm run test:api:website -- clients.api.spec.ts
+npm run test:api:website -- --list
+npx playwright show-report playwright-report/advisordesk-api
+```
+
+## Postgres
+
+Docker is required for the Postgres suite:
+
+```bash
+npm run db:up
+npm run test:db:pg
 npm run db:down
 ```
 
-A separate `tests/e2e/db-integration.spec.ts` validates that the demo's
-localStorage store and the SQLite mirror stay in sync after each CRUD.
+## Project structure
 
-## Path aliases
+| Folder | Purpose |
+|---|---|
+| `pages/`, `components/` | Page Object Models and reusable UI components |
+| `fixtures/` | Browser setup and sample data |
+| `tests/e2e/` | UI, mobile, and browser/database mirror tests |
+| `tests-advisordesk-api/` | Proposed API tests, shared fixtures, and test data |
+| `tests-db/`, `utils/db/` | Database tests, connections, seed, and repositories |
+| `config/`, `types/` | Environment configuration and shared domain types |
+| `public/demo.html` | Local copy of the demo |
 
-```ts
-import { BasePage } from '@pages/base.page';
-import { Clients } from '@db/repository';
-import { ApiClient } from '@api/api-client';
-import { environment } from '@config/environments';
-```
-
-## CI
-
-```bash
-CI=true npm test
-```
-
-The config uses `workers: 1` for DB projects so the SQLite file isn't
-dropped concurrently. Retries are enabled by default (2 retries on
-transient 429/5xx).
+Main reports are saved in `playwright-report/` and `test-results/`.

@@ -39,6 +39,7 @@
   "files": ["./types/faker.d.ts"],
   "include": [
     "tests/**/*.ts",
+    "tests-advisordesk-api/**/*.ts",
     "utils/**/*.ts",
     "config/**/*.ts",
     "types/**/*.ts"

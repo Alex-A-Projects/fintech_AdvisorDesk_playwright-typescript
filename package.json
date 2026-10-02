@@ -7,6 +7,7 @@
     "test": "playwright test",
     "test:ui": "playwright test --project=chromium",
     "test:api": "playwright test --project=api",
+    "test:api:website": "playwright test --config=playwright.advisordesk-api.config.ts",
     "test:db": "playwright test --project=db",
     "test:db:pg": "playwright test --project=db-postgres",
     "test:headed": "playwright test --headed",
